@@ -1,32 +1,1499 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>System Access</title>
-    <style>
-        body { background-color: black; color: #00ff00; font-family: monospace; padding: 20px; font-size: 18px; }
-    </style>
-</head>
-<body>
-    <div id="terminal"></div>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مكتبة القمة للطباعة | نظام حساب الأرباح والخسائر وتقريب الـ 5</title>
+    
+    <!-- تحميل خط Cairo من Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- تحميل مكتبة Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- تحميل مكتبة Chart.js للرسوم البيانية -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- تحميل مكتبة Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <script>
-        const texts = [
-            "Initializing connection to target device...",
-            "Bypassing firewall [OK]",
-            "Accessing root directory...",
-            "Decrypting secure database...",
-            "Extracting user credentials...",
-            "Access Granted: Welcome Admin."
-        ];
-        let i = 0;
-        function showText() {
-            if (i < texts.length) {
-                document.getElementById("terminal").innerHTML += texts[i] + "<br>";
-                i++;
-                setTimeout(showText, 1000);
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Cairo', 'sans-serif'],
+                    }
+                }
             }
         }
-        showText();
+    </script>
+
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .stat-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-indigo-600 selection:text-white">
+
+    <!-- حاوية الإشعارات (Toast Notifications) -->
+    <div id="toast-container" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+    <!-- نافذة التأكيد المخصصة (Custom Confirm Modal) -->
+    <div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 transition-opacity">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-100">
+            <div class="flex items-center gap-3 text-rose-600 mb-3">
+                <div class="p-2.5 bg-rose-50 rounded-xl">
+                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                </div>
+                <h3 id="confirm-title" class="text-lg font-bold text-slate-800">تأكيد الإجراء</h3>
+            </div>
+            <p id="confirm-message" class="text-slate-600 text-sm leading-relaxed mb-6">هل أنت متأكد من رغبتك في تنفيذ هذا الإجراء؟</p>
+            <div class="flex items-center justify-end gap-3">
+                <button id="confirm-cancel-btn" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
+                    إلغاء
+                </button>
+                <button id="confirm-ok-btn" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 shadow-sm transition-colors">
+                    نعم، متابعة
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- الشريط العلوي (Navbar) -->
+    <header class="bg-white border-b border-slate-200/80 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-700 to-blue-600 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+                    <i data-lucide="printer" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-xl font-extrabold text-slate-800 tracking-tight">مكتبة القمة للطباعة</h1>
+                    <p class="text-xs text-slate-500 hidden sm:block">نظام حساب ربح الشغل الأساسي + ربح تقريب الـ 5 + خسائر الهالك (يومي • أسبوعي • شهري)</p>
+                </div>
+            </div>
+
+            <!-- أزرار التحكم السريعة -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button id="export-csv-btn" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200/80 transition-colors" title="تصدير التقرير كملف Excel/CSV">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i>
+                    <span class="hidden md:inline">تصدير Excel</span>
+                </button>
+
+                <button id="clear-all-btn" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors" title="مسح جميع السجلات">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span class="hidden md:inline">مسح السجل</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+
+        <!-- شريط التصفية الزمنية والتنقل (يومي - أسبوعي - شهري - الكل) -->
+        <section class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/70 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            
+            <!-- أزرار الفترات الزمنية -->
+            <div class="flex flex-wrap items-center gap-2 bg-slate-100/80 p-1.5 rounded-xl w-full lg:w-auto">
+                <button data-period="daily" class="period-tab flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-700 shadow-sm">
+                    يومي
+                </button>
+                <button data-period="weekly" class="period-tab flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 transition-all">
+                    أسبوعي
+                </button>
+                <button data-period="monthly" class="period-tab flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 transition-all">
+                    شهري
+                </button>
+                <button data-period="all" class="period-tab flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 transition-all">
+                    الكل
+                </button>
+            </div>
+
+            <!-- أزرار التنقل (السابق / اليوم / التالي) ومنتقي التاريخ -->
+            <div class="flex flex-wrap items-center justify-between lg:justify-end gap-2.5 w-full lg:w-auto">
+                <div class="flex items-center gap-2 text-xs sm:text-sm text-slate-600 bg-indigo-50/70 px-3.5 py-2 rounded-xl border border-indigo-100">
+                    <i data-lucide="calendar" class="w-4 h-4 text-indigo-600 shrink-0"></i>
+                    <span id="period-label" class="font-bold text-indigo-950">اليوم</span>
+                </div>
+
+                <div id="date-nav-wrapper" class="flex items-center gap-1.5">
+                    <button id="prev-period-btn" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors" title="الفترة السابقة">
+                        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                    <input type="date" id="reference-date" class="bg-white border border-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                    <button id="next-period-btn" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors" title="الفترة التالية">
+                        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                    </button>
+                    <button id="today-btn" class="px-3 py-2 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors">
+                        اليوم
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- بطاقات الملخص الذكية (5 بطاقات تغطي المحصلتين، الفلوس المحصلة، الورق المباع والهالك، وصافي الربح الكلي) -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            
+            <!-- 1. إجمالي الفلوس المحصلة فعلاً -->
+            <div class="stat-card bg-white rounded-2xl p-5 shadow-sm border border-slate-200/70">
+                <div class="flex items-start justify-between mb-2">
+                    <p class="text-xs font-bold text-slate-500">الفلوس المحصلة (الفعلي)</p>
+                    <div class="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                        <i data-lucide="banknote" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <h2 id="stat-collected" class="text-xl sm:text-2xl font-extrabold text-indigo-700 tracking-tight">0.00 ج.م</h2>
+                <p id="stat-required-sub" class="text-xs text-slate-500 mt-2 font-semibold">المطلوب بسعر البيع: 0.00 ج.م</p>
+            </div>
+
+            <!-- 2. المحصلة الأولى: ربح الشغل الأساسي -->
+            <div class="stat-card bg-white rounded-2xl p-5 shadow-sm border border-blue-200/70">
+                <div class="flex items-start justify-between mb-2">
+                    <div>
+                        <span class="text-[10px] font-extrabold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">المحصلة (1)</span>
+                        <p class="text-xs font-bold text-slate-600 mt-1">ربح الشغل الأساسي</p>
+                    </div>
+                    <div class="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                        <i data-lucide="layers" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <h2 id="stat-base-profit" class="text-xl sm:text-2xl font-extrabold text-blue-700 tracking-tight" dir="ltr">0.00 ج.م</h2>
+                <p class="text-[11px] text-slate-400 mt-2 font-medium">فرق السعرين بعد خصم الهالك</p>
+            </div>
+
+            <!-- 3. المحصلة الثانية: ربح/خسارة تقريب الـ 5 -->
+            <div class="stat-card bg-white rounded-2xl p-5 shadow-sm border border-amber-200/80">
+                <div class="flex items-start justify-between mb-2">
+                    <div>
+                        <span class="text-[10px] font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">المحصلة (2)</span>
+                        <p class="text-xs font-bold text-slate-600 mt-1">ربح تقريب الـ 5</p>
+                    </div>
+                    <div class="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                        <i data-lucide="coins" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <h2 id="stat-rounding-profit" class="text-xl sm:text-2xl font-extrabold text-amber-600 tracking-tight" dir="ltr">0.00 ج.م</h2>
+                <p class="text-[11px] text-slate-400 mt-2 font-medium">الفعلي ناقص المطلوب بسعر البيع</p>
+            </div>
+
+            <!-- 4. الورق المباع والهالك وخسارته -->
+            <div class="stat-card bg-white rounded-2xl p-5 shadow-sm border border-rose-200/70">
+                <div class="flex items-start justify-between mb-2">
+                    <p class="text-xs font-bold text-slate-600">الورق المباع والهالك</p>
+                    <div class="p-2 bg-rose-50 text-rose-600 rounded-xl">
+                        <i data-lucide="file-x-2" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <h2 id="stat-sold-sheets" class="text-lg sm:text-xl font-extrabold text-slate-800">0</h2>
+                    <span class="text-xs text-slate-400 font-bold">مباع</span>
+                    <span class="text-slate-300">|</span>
+                    <span id="stat-wasted-sheets" class="text-base font-extrabold text-rose-600">0</span>
+                    <span class="text-xs text-rose-500 font-bold">هالك</span>
+                </div>
+                <p id="stat-waste-loss" class="text-xs font-bold text-rose-600 mt-2">خسارة الهالك: 0.00 ج.م</p>
+            </div>
+
+            <!-- 5. صافي الربح الكلي النهائي (مجموع المحصلتين) -->
+            <div id="net-card" class="stat-card sm:col-span-2 lg:col-span-1 bg-white rounded-2xl p-5 shadow-sm border-2 border-emerald-500/40">
+                <div class="flex items-start justify-between mb-2">
+                    <div>
+                        <p class="text-xs font-extrabold text-slate-700">صافي الربح الكلي</p>
+                        <p class="text-[10px] text-slate-400 font-semibold">المحصلة (1) + المحصلة (2)</p>
+                    </div>
+                    <span id="net-badge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">ربح صافي</span>
+                </div>
+                <h2 id="stat-total-net" class="text-xl sm:text-2xl font-extrabold text-emerald-600 tracking-tight" dir="ltr">0.00 ج.م</h2>
+                <p id="stat-margin" class="text-xs font-bold text-slate-600 mt-2">هامش الربح: 0%</p>
+            </div>
+
+        </section>
+
+        <!-- القسم الأوسط: نموذج الإدخال التفاعلي + الرسوم البيانية -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- نموذج الإدخال التفاعلي السريع (5 أعمدة) -->
+            <div class="lg:col-span-5 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/70">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-indigo-700 text-white flex items-center justify-center shadow-sm">
+                            <i data-lucide="calculator" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 id="form-title" class="text-base sm:text-lg font-extrabold text-slate-800">تسجيل توتال اليوم / الأوردرات</h3>
+                            <p class="text-xs text-slate-400">أدخل الإجماليات وستظهر الحسابات الفورية تحت كل خانة</p>
+                        </div>
+                    </div>
+                    <button id="cancel-edit-btn" type="button" class="hidden text-xs font-bold text-rose-600 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg transition-colors">
+                        إلغاء التعديل
+                    </button>
+                </div>
+
+                <form id="print-form" class="space-y-4">
+                    <input type="hidden" id="edit-id" value="">
+
+                    <!-- إعدادات السعر الأصلي وسعر البيع للورقة -->
+                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-extrabold text-slate-700 flex items-center gap-1.5">
+                                <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-indigo-600"></i>
+                                تسعير الورقة (يُحفظ تلقائياً):
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label for="original-price" class="block text-[11px] font-bold text-slate-600 mb-1">السعر الأصلي (التكلفة عليك)</label>
+                                <div class="relative">
+                                    <input type="number" id="original-price" min="0" step="0.01" value="0.35" required
+                                        class="w-full bg-white border border-slate-200 rounded-lg py-2 pr-2.5 pl-10 text-slate-800 font-extrabold text-xs focus:outline-none focus:border-indigo-500">
+                                    <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">ج.م</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="selling-price" class="block text-[11px] font-bold text-indigo-700 mb-1">سعر البيع (سعر الطالب)</label>
+                                <div class="relative">
+                                    <input type="number" id="selling-price" min="0" step="0.01" value="0.50" required
+                                        class="w-full bg-white border border-indigo-200 rounded-lg py-2 pr-2.5 pl-10 text-indigo-800 font-extrabold text-xs focus:outline-none focus:border-indigo-500">
+                                    <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-indigo-400">ج.م</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- التاريخ والملاحظات -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label for="entry-date" class="block text-xs font-bold text-slate-700 mb-1">التاريخ <span class="text-rose-500">*</span></label>
+                            <input type="date" id="entry-date" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-slate-800 font-bold text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                        </div>
+
+                        <div>
+                            <label for="entry-note" class="block text-xs font-bold text-slate-700 mb-1">ملاحظات / وصف (اختياري)</label>
+                            <input type="text" id="entry-note" placeholder="مثال: توتال أوردرات اليوم..."
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-slate-800 text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                        </div>
+                    </div>
+
+                    <!-- 1. خانة عدد الورق المباع + المعاينة الفورية تحتها -->
+                    <div class="space-y-1.5">
+                        <label for="sold-sheets" class="block text-xs font-extrabold text-blue-800">1. عدد الورق المباع (التوتال) <span class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <input type="number" id="sold-sheets" min="0" step="1" required placeholder="0"
+                                class="w-full bg-blue-50/40 border border-blue-200 rounded-xl py-2.5 pr-3.5 pl-12 text-slate-900 font-extrabold text-base focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-blue-600">ورقة</span>
+                        </div>
+                        <!-- مربع المعاينة الفوري تحت الورق المباع -->
+                        <div class="bg-blue-50/70 border border-blue-100 rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <span class="font-bold text-blue-900">السعر المطلوب (بسعر البيع): <strong id="preview-required-price" class="text-blue-700 text-sm">0.00 ج.م</strong></span>
+                            <span class="text-[11px] font-semibold text-slate-500">التكلفة الأصلية: <strong id="preview-original-cost" class="text-slate-700">0.00 ج.م</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- 2. خانة الفلوس التي تم الحصول عليها + معاينة ربح تقريب الـ 5 تحتها -->
+                    <div class="space-y-1.5">
+                        <label for="collected-money" class="block text-xs font-extrabold text-emerald-800">2. الفلوس التي تم الحصول عليها (البيع الفعلي) <span class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <input type="number" id="collected-money" min="0" step="0.01" required placeholder="0.00"
+                                class="w-full bg-emerald-50/40 border border-emerald-200 rounded-xl py-2.5 pr-3.5 pl-12 text-emerald-900 font-extrabold text-base focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-extrabold text-emerald-600">ج.م</span>
+                        </div>
+                        <!-- مربع المعاينة الفوري تحت الفلوس المحصلة -->
+                        <div id="preview-rounding-box" class="bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 flex items-center justify-between text-xs transition-colors">
+                            <span class="font-bold text-slate-700">محصلة ربح/خسارة تقريب الـ 5:</span>
+                            <strong id="preview-rounding-val" class="text-sm font-extrabold text-slate-600" dir="ltr">0.00 ج.م</strong>
+                        </div>
+                    </div>
+
+                    <!-- 3. خانة عدد الورق الهالك + معاينة سعر الخسارة تحتها -->
+                    <div class="space-y-1.5">
+                        <label for="wasted-sheets" class="block text-xs font-extrabold text-rose-800">3. عدد الورق الهالك <span class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <input type="number" id="wasted-sheets" min="0" step="1" required placeholder="0"
+                                class="w-full bg-rose-50/40 border border-rose-200 rounded-xl py-2.5 pr-3.5 pl-12 text-rose-800 font-extrabold text-base focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-rose-500">ورقة</span>
+                        </div>
+                        <!-- مربع المعاينة الفوري تحت الورق الهالك -->
+                        <div class="bg-rose-50/70 border border-rose-100 rounded-xl px-3 py-2 flex items-center justify-between text-xs">
+                            <span class="font-bold text-rose-800">سعر/خسارة الورق الهالك (بالسعر الأصلي):</span>
+                            <strong id="preview-waste-loss" class="text-sm font-extrabold text-rose-600" dir="ltr">0.00 ج.م</strong>
+                        </div>
+                    </div>
+
+                    <!-- 4. خانة اختيارية: مصروفات إضافية -->
+                    <div>
+                        <label for="extra-expenses" class="block text-xs font-bold text-slate-600 mb-1">مصروفات إضافية (تغليف، توصيل، صيانة - اختياري)</label>
+                        <div class="relative">
+                            <input type="number" id="extra-expenses" min="0" step="0.01" value="0" placeholder="0.00"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pr-3 pl-10 text-slate-800 font-bold text-xs focus:bg-white focus:outline-none focus:border-indigo-500">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">ج.م</span>
+                        </div>
+                    </div>
+
+                    <!-- شريط الملخص الفوري للمحصلتين قبل الحفظ -->
+                    <div class="bg-slate-900 text-white rounded-2xl p-4 space-y-2.5 shadow-inner">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-slate-300 font-semibold">المحصلة (1) ربح الشغل الأساسي:</span>
+                            <span id="summary-base-profit" class="font-extrabold text-blue-400" dir="ltr">0.00 ج.م</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-slate-300 font-semibold">المحصلة (2) ربح/خسارة تقريب الـ 5:</span>
+                            <span id="summary-rounding-profit" class="font-extrabold text-amber-400" dir="ltr">0.00 ج.م</span>
+                        </div>
+                        <div class="pt-2 border-t border-slate-700/80 flex items-center justify-between">
+                            <span class="text-xs sm:text-sm font-extrabold text-white">صافي الربح الكلي النهائي في الدرج:</span>
+                            <span id="summary-total-net" class="text-base sm:text-lg font-black text-emerald-400" dir="ltr">0.00 ج.م</span>
+                        </div>
+                    </div>
+
+                    <!-- زر الحفظ -->
+                    <button type="submit" class="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-200 flex items-center justify-center gap-2 transition-all active:scale-[0.99]">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        <span id="submit-btn-text">حفظ السجل في الحسابات</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- قسم الرسوم البيانية التفاعلية (7 أعمدة) -->
+            <div class="lg:col-span-7 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/70 flex flex-col">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <div>
+                        <h3 class="text-lg font-extrabold text-slate-800">التحليل البياني للأرباح والورق</h3>
+                        <p id="chart-subtitle" class="text-xs text-slate-500">مقارنة ربح الشغل الأساسي، ربح تقريب الـ 5، خسارة الهالك، وصافي الربح الكلي</p>
+                    </div>
+
+                    <!-- تبويبات الرسم البياني -->
+                    <div class="flex items-center bg-slate-100 p-1 rounded-xl self-start sm:self-auto">
+                        <button type="button" id="chart-mode-money" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-indigo-700 shadow-sm transition-all">
+                            تحليل الأرباح والخسائر
+                        </button>
+                        <button type="button" id="chart-mode-sheets" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all">
+                            حركة الورق
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- حاوية الرسم البياني المتجاوبة -->
+                <div class="relative flex-1 w-full min-h-[320px] sm:min-h-[380px]">
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- قسم جدول السجلات التفصيلي والإدارة -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200/70 overflow-hidden">
+            <div class="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-lg font-extrabold text-slate-800">سجل الحسابات التفصيلي</h3>
+                    <span id="table-count-badge" class="text-xs font-bold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full">0 سجل</span>
+                </div>
+
+                <!-- بحث سريع في الملاحظات أو التاريخ -->
+                <div class="relative">
+                    <input type="text" id="search-input" placeholder="ابحث بالملاحظة أو التاريخ..."
+                        class="w-full sm:w-64 bg-slate-50 border border-slate-200 rounded-xl py-2 pr-9 pl-3.5 text-sm text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2"></i>
+                </div>
+            </div>
+
+            <!-- الجدول المتجاوب -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-right border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50/90 border-b border-slate-200/70 text-xs font-extrabold text-slate-600">
+                            <th class="py-3.5 px-4">التاريخ والبيان</th>
+                            <th class="py-3.5 px-4">الورق المباع</th>
+                            <th class="py-3.5 px-4">المطلوب (سعر البيع)</th>
+                            <th class="py-3.5 px-4">الفلوس المحصلة</th>
+                            <th class="py-3.5 px-4">الورق الهالك وخسارته</th>
+                            <th class="py-3.5 px-4 text-blue-700">محصلة (1) ربح الشغل</th>
+                            <th class="py-3.5 px-4 text-amber-700">محصلة (2) تقريب الـ 5</th>
+                            <th class="py-3.5 px-4 text-emerald-700">صافي الربح الكلي</th>
+                            <th class="py-3.5 px-4 text-center">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="records-tbody" class="divide-y divide-slate-100 text-sm">
+                        <!-- يتم تعبئة الصفوف ديناميكياً -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- حالة عدم وجود بيانات -->
+            <div id="empty-state" class="hidden py-14 px-4 text-center">
+                <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="printer" class="w-8 h-8"></i>
+                </div>
+                <h4 class="text-base font-bold text-slate-700 mb-1">لا توجد سجلات في هذه الفترة</h4>
+                <p class="text-xs text-slate-500 max-w-sm mx-auto mb-4">أدخل توتال الورق المباع والفلوس المحصلة والورق الهالك من النموذج أعلاه، أو حمّل بيانات تجريبية.</p>
+                <button id="load-sample-btn" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    <span>تحميل بيانات تجريبية واقعية</span>
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- تذييل الصفحة -->
+    <footer class="bg-white border-t border-slate-200/70 py-5 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+            <p>© <span id="current-year"></span> مكتبة القمة للطباعة - نظام حساب الأرباح وتقريب الـ 5 والورق الهالك. يعمل دون إنترنت ويُحفظ تلقائياً.</p>
+            <button id="footer-sample-btn" class="hover:text-indigo-600 font-semibold transition-colors">إضافة بيانات تجريبية</button>
+        </div>
+    </footer>
+
+    <script>
+        /**
+         * ============================================================================
+         * 1. الثوابت وإدارة الحالة (Constants & State)
+         * ============================================================================
+         */
+        const STORAGE_KEY = 'qimma_print_records_v2';
+        const PRICES_KEY = 'qimma_sheet_prices_v2';
+
+        const ARABIC_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+        const ARABIC_MONTHS = [
+            'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+            'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+        ];
+
+        let state = {
+            records: [],
+            period: 'daily', // 'daily' | 'weekly' | 'monthly' | 'all'
+            referenceDate: getTodayISO(),
+            chartMode: 'money', // 'money' | 'sheets'
+            searchQuery: '',
+            chartInstance: null
+        };
+
+        /**
+         * ============================================================================
+         * 2. دوال مساعدة للتاريخ والأرقام والمعادلات الحسابية
+         * ============================================================================
+         */
+        function getTodayISO() {
+            const now = new Date();
+            const offset = now.getTimezoneOffset();
+            const local = new Date(now.getTime() - (offset * 60 * 1000));
+            return local.toISOString().split('T')[0];
+        }
+
+        function formatMoney(amount, includeSign = false) {
+            const val = Number(amount) || 0;
+            const absVal = Math.abs(val).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            let sign = '';
+            if (includeSign) {
+                sign = val > 0 ? '+' : (val < 0 ? '-' : '');
+            } else if (val < 0) {
+                sign = '-';
+            }
+            return `${sign}${absVal} ج.م`;
+        }
+
+        function formatNumber(num) {
+            return (Number(num) || 0).toLocaleString('en-US');
+        }
+
+        function formatDateArabic(isoDateStr) {
+            const [y, m, d] = isoDateStr.split('-').map(Number);
+            const dateObj = new Date(y, m - 1, d);
+            const dayName = ARABIC_DAYS[dateObj.getDay()];
+            return `${dayName}، ${d} ${ARABIC_MONTHS[m - 1]} ${y}`;
+        }
+
+        // حساب بداية ونهاية الأسبوع (من السبت إلى الجمعة)
+        function getWeekRange(isoDateStr) {
+            const [y, m, d] = isoDateStr.split('-').map(Number);
+            const date = new Date(y, m - 1, d);
+            const dayOfWeek = date.getDay();
+            const diffToSaturday = (dayOfWeek + 1) % 7;
+            
+            const start = new Date(date);
+            start.setDate(date.getDate() - diffToSaturday);
+            
+            const end = new Date(start);
+            end.setDate(start.getDate() + 6);
+
+            const toISO = (dt) => {
+                const yr = dt.getFullYear();
+                const mo = String(dt.getMonth() + 1).padStart(2, '0');
+                const dy = String(dt.getDate()).padStart(2, '0');
+                return `${yr}-${mo}-${dy}`;
+            };
+
+            return {
+                startISO: toISO(start),
+                endISO: toISO(end),
+                startObj: start,
+                endObj: end
+            };
+        }
+
+        /**
+         * المعادلات الحسابية الدقيقة لسجل واحد:
+         * - السعر المطلوب (بسعر البيع - بدون تقريب) = الورق المباع × سعر البيع
+         * - التكلفة الأصلية للورق المباع = الورق المباع × السعر الأصلي
+         * - خسارة الورق الهالك = الورق الهالك × السعر الأصلي
+         * - المحصلة الأولى (ربح الشغل الأساسي) = (السعر المطلوب بسعر البيع - التكلفة الأصلية للورق المباع) - خسارة الهالك - المصروفات الإضافية
+         * - المحصلة الثانية (ربح/خسارة تقريب الـ 5) = الفلوس المحصلة فعلاً - السعر المطلوب بسعر البيع
+         * - صافي الربح الكلي النهائي = المحصلة الأولى + المحصلة الثانية
+         */
+        function calculateRecordMetrics(rec) {
+            const soldSheets = Number(rec.soldSheets) || 0;
+            const wastedSheets = Number(rec.wastedSheets) || 0;
+            const collectedMoney = Number(rec.collectedMoney) || 0;
+            const originalPrice = Number(rec.originalPrice) || 0;
+            const sellingPrice = Number(rec.sellingPrice) || 0;
+            const extraExpenses = Number(rec.extraExpenses) || 0;
+
+            const requiredSellingPrice = soldSheets * sellingPrice;
+            const soldOriginalCost = soldSheets * originalPrice;
+            const wasteLoss = wastedSheets * originalPrice;
+
+            const baseWorkProfit = (requiredSellingPrice - soldOriginalCost) - wasteLoss - extraExpenses;
+            const roundingProfit = collectedMoney - requiredSellingPrice;
+            const totalNetProfit = baseWorkProfit + roundingProfit;
+
+            return {
+                soldSheets,
+                wastedSheets,
+                collectedMoney,
+                originalPrice,
+                sellingPrice,
+                extraExpenses,
+                requiredSellingPrice,
+                soldOriginalCost,
+                wasteLoss,
+                baseWorkProfit,
+                roundingProfit,
+                totalNetProfit
+            };
+        }
+
+        /**
+         * ============================================================================
+         * 3. نظام الإشعارات والتأكيد (Toast & Confirm Modal)
+         * ============================================================================
+         */
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const styles = {
+                success: 'bg-slate-900 text-white border-emerald-500',
+                error: 'bg-rose-600 text-white border-rose-800',
+                info: 'bg-slate-800 text-white border-indigo-400'
+            };
+
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border-r-4 text-sm font-semibold transform transition-all duration-300 translate-y-2 opacity-0 ${styles[type] || styles.success}`;
+            toast.innerHTML = `
+                <i data-lucide="${type === 'error' ? 'alert-circle' : 'check-circle'}" class="w-5 h-5 shrink-0 ${type === 'success' ? 'text-emerald-400' : 'text-white'}"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+            lucide.createIcons({ root: toast });
+
+            requestAnimationFrame(() => toast.classList.remove('translate-y-2', 'opacity-0'));
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function showConfirm(title, message, onConfirm) {
+            const modal = document.getElementById('confirm-modal');
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').textContent = message;
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            const okBtn = document.getElementById('confirm-ok-btn');
+            const cancelBtn = document.getElementById('confirm-cancel-btn');
+
+            const cleanup = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                okBtn.onclick = null;
+                cancelBtn.onclick = null;
+            };
+
+            okBtn.onclick = () => { cleanup(); onConfirm(); };
+            cancelBtn.onclick = cleanup;
+        }
+
+        /**
+         * ============================================================================
+         * 4. التخزين المحلي والبيانات التجريبية (Storage & Sample Data)
+         * ============================================================================
+         */
+        function savePricesToStorage() {
+            try {
+                const prices = {
+                    originalPrice: document.getElementById('original-price').value,
+                    sellingPrice: document.getElementById('selling-price').value
+                };
+                localStorage.setItem(PRICES_KEY, JSON.stringify(prices));
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function saveToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state.records));
+                savePricesToStorage();
+            } catch (e) {
+                console.error('فشل الحفظ:', e);
+            }
+        }
+
+        function loadFromStorage() {
+            try {
+                const savedPrices = localStorage.getItem(PRICES_KEY);
+                if (savedPrices) {
+                    const parsed = JSON.parse(savedPrices);
+                    if (parsed.originalPrice !== undefined) document.getElementById('original-price').value = parsed.originalPrice;
+                    if (parsed.sellingPrice !== undefined) document.getElementById('selling-price').value = parsed.sellingPrice;
+                }
+
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw !== null) {
+                    state.records = JSON.parse(raw);
+                } else {
+                    state.records = generateSampleData();
+                    saveToStorage();
+                }
+            } catch (e) {
+                state.records = [];
+            }
+        }
+
+        function generateSampleData() {
+            const today = new Date();
+            const getDateOffset = (daysAgo) => {
+                const d = new Date(today);
+                d.setDate(today.getDate() - daysAgo);
+                const yr = d.getFullYear();
+                const mo = String(d.getMonth() + 1).padStart(2, '0');
+                const dy = String(d.getDate()).padStart(2, '0');
+                return `${yr}-${mo}-${dy}`;
+            };
+
+            return [
+                { id: '1', date: getDateOffset(0), note: 'توتال أوردرات اليوم - مذكرات طب', soldSheets: 1240, wastedSheets: 30, collectedMoney: 655, originalPrice: 0.35, sellingPrice: 0.50, extraExpenses: 25 },
+                { id: '2', date: getDateOffset(1), note: 'طباعة ملخصات هندسة وحاسبات', soldSheets: 1850, wastedSheets: 40, collectedMoney: 960, originalPrice: 0.35, sellingPrice: 0.50, extraExpenses: 40 },
+                { id: '3', date: getDateOffset(2), note: 'طلبات توصيل سكن الجامعة', soldSheets: 1520, wastedSheets: 20, collectedMoney: 790, originalPrice: 0.35, sellingPrice: 0.50, extraExpenses: 30 },
+                { id: '4', date: getDateOffset(3), note: 'يوم هادئ + خصومات للطلبة', soldSheets: 680, wastedSheets: 50, collectedMoney: 330, originalPrice: 0.35, sellingPrice: 0.50, extraExpenses: 15 },
+                { id: '5', date: getDateOffset(4), note: 'مذكرات مراجعة نهائية', soldSheets: 2600, wastedSheets: 45, collectedMoney: 1365, originalPrice: 0.35, sellingPrice: 0.50, extraExpenses: 50 },
+                { id: '6', date: getDateOffset(5), note: 'طباعة ألوان وتغليف', soldSheets: 900, wastedSheets: 15, collectedMoney: 700, originalPrice: 0.45, sellingPrice: 0.75, extraExpenses: 35 }
+            ];
+        }
+
+        /**
+         * ============================================================================
+         * 5. التصفية الزمنية وحساب بطاقات الملخص
+         * ============================================================================
+         */
+        function getFilteredRecordsByPeriod() {
+            const ref = state.referenceDate;
+            return state.records.filter(rec => {
+                if (state.period === 'all') return true;
+                if (state.period === 'daily') return rec.date === ref;
+                if (state.period === 'weekly') {
+                    const { startISO, endISO } = getWeekRange(ref);
+                    return rec.date >= startISO && rec.date <= endISO;
+                }
+                if (state.period === 'monthly') {
+                    return rec.date.substring(0, 7) === ref.substring(0, 7);
+                }
+                return true;
+            });
+        }
+
+        function updatePeriodLabel() {
+            const labelEl = document.getElementById('period-label');
+            const ref = state.referenceDate;
+            const [y, m, d] = ref.split('-').map(Number);
+
+            if (state.period === 'daily') {
+                const isToday = ref === getTodayISO();
+                labelEl.textContent = isToday ? `اليوم (${d} ${ARABIC_MONTHS[m - 1]})` : formatDateArabic(ref);
+            } else if (state.period === 'weekly') {
+                const { startObj, endObj } = getWeekRange(ref);
+                labelEl.textContent = `أسبوع: ${startObj.getDate()} ${ARABIC_MONTHS[startObj.getMonth()]} - ${endObj.getDate()} ${ARABIC_MONTHS[endObj.getMonth()]}`;
+            } else if (state.period === 'monthly') {
+                labelEl.textContent = `شهر ${ARABIC_MONTHS[m - 1]} ${y}`;
+            } else {
+                labelEl.textContent = 'جميع الفترات المسجلة';
+            }
+        }
+
+        function updateSummaryCards(periodRecords) {
+            let totalCollected = 0;
+            let totalRequired = 0;
+            let totalBaseProfit = 0;
+            let totalRoundingProfit = 0;
+            let totalSoldSheets = 0;
+            let totalWastedSheets = 0;
+            let totalWasteLoss = 0;
+            let totalNet = 0;
+
+            periodRecords.forEach(rec => {
+                const m = calculateRecordMetrics(rec);
+                totalCollected += m.collectedMoney;
+                totalRequired += m.requiredSellingPrice;
+                totalBaseProfit += m.baseWorkProfit;
+                totalRoundingProfit += m.roundingProfit;
+                totalSoldSheets += m.soldSheets;
+                totalWastedSheets += m.wastedSheets;
+                totalWasteLoss += m.wasteLoss;
+                totalNet += m.totalNetProfit;
+            });
+
+            const margin = totalCollected > 0 ? ((totalNet / totalCollected) * 100).toFixed(1) : 0;
+
+            // 1. الفلوس المحصلة
+            document.getElementById('stat-collected').textContent = formatMoney(totalCollected);
+            document.getElementById('stat-required-sub').textContent = `المطلوب بسعر البيع: ${formatMoney(totalRequired)}`;
+
+            // 2. المحصلة الأولى (ربح الشغل الأساسي)
+            const baseEl = document.getElementById('stat-base-profit');
+            baseEl.textContent = formatMoney(totalBaseProfit, true);
+            baseEl.className = `text-xl sm:text-2xl font-extrabold tracking-tight ${totalBaseProfit >= 0 ? 'text-blue-700' : 'text-rose-600'}`;
+
+            // 3. المحصلة الثانية (ربح تقريب الـ 5)
+            const roundEl = document.getElementById('stat-rounding-profit');
+            roundEl.textContent = formatMoney(totalRoundingProfit, true);
+            roundEl.className = `text-xl sm:text-2xl font-extrabold tracking-tight ${totalRoundingProfit > 0 ? 'text-amber-600' : (totalRoundingProfit < 0 ? 'text-rose-600' : 'text-slate-600')}`;
+
+            // 4. الورق المباع والهالك
+            document.getElementById('stat-sold-sheets').textContent = formatNumber(totalSoldSheets);
+            document.getElementById('stat-wasted-sheets').textContent = formatNumber(totalWastedSheets);
+            document.getElementById('stat-waste-loss').textContent = `خسارة الهالك: ${formatMoney(totalWasteLoss)}`;
+
+            // 5. صافي الربح الكلي
+            const netEl = document.getElementById('stat-total-net');
+            const netCard = document.getElementById('net-card');
+            const netBadge = document.getElementById('net-badge');
+
+            netEl.textContent = formatMoney(totalNet, true);
+            document.getElementById('stat-margin').textContent = `هامش الربح: ${margin}%`;
+
+            if (totalNet > 0) {
+                netEl.className = 'text-xl sm:text-2xl font-extrabold text-emerald-600 tracking-tight';
+                netCard.className = 'stat-card sm:col-span-2 lg:col-span-1 bg-white rounded-2xl p-5 shadow-sm border-2 border-emerald-500/40';
+                netBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700';
+                netBadge.textContent = 'ربح صافي ▲';
+            } else if (totalNet < 0) {
+                netEl.className = 'text-xl sm:text-2xl font-extrabold text-rose-600 tracking-tight';
+                netCard.className = 'stat-card sm:col-span-2 lg:col-span-1 bg-white rounded-2xl p-5 shadow-sm border-2 border-rose-500/40';
+                netBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700';
+                netBadge.textContent = 'خسارة صافية ▼';
+            } else {
+                netEl.className = 'text-xl sm:text-2xl font-extrabold text-slate-700 tracking-tight';
+                netCard.className = 'stat-card sm:col-span-2 lg:col-span-1 bg-white rounded-2xl p-5 shadow-sm border-2 border-slate-200';
+                netBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600';
+                netBadge.textContent = 'نقطة تعادل';
+            }
+        }
+
+        /**
+         * ============================================================================
+         * 6. الرسم البياني التفاعلي (Chart.js)
+         * ============================================================================
+         */
+        function updateChart(periodRecords) {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            const subtitleEl = document.getElementById('chart-subtitle');
+
+            const groupedData = [];
+
+            if (state.period === 'daily') {
+                subtitleEl.textContent = state.chartMode === 'money' 
+                    ? 'تفصيل ربح الشغل الأساسي، ربح تقريب الـ 5، خسارة الهالك، وصافي الربح الكلي لليوم'
+                    : 'مقارنة عدد الورق المباع مقابل الورق الهالك لليوم';
+
+                if (periodRecords.length === 0) {
+                    groupedData.push({ label: 'لا توجد بيانات', base: 0, round: 0, wasteLoss: 0, net: 0, sold: 0, wasted: 0 });
+                } else {
+                    periodRecords.forEach((rec, idx) => {
+                        const m = calculateRecordMetrics(rec);
+                        groupedData.push({
+                            label: rec.note || `سجل #${idx + 1}`,
+                            base: m.baseWorkProfit,
+                            round: m.roundingProfit,
+                            wasteLoss: m.wasteLoss,
+                            net: m.totalNetProfit,
+                            sold: m.soldSheets,
+                            wasted: m.wastedSheets
+                        });
+                    });
+                }
+            } else if (state.period === 'weekly') {
+                subtitleEl.textContent = state.chartMode === 'money'
+                    ? 'تحليل الأرباح والخسائر يومياً خلال أيام الأسبوع (السبت - الجمعة)'
+                    : 'حركة الورق المباع والهالك يومياً خلال الأسبوع';
+
+                const { startObj } = getWeekRange(state.referenceDate);
+                for (let i = 0; i < 7; i++) {
+                    const current = new Date(startObj);
+                    current.setDate(startObj.getDate() + i);
+                    const yr = current.getFullYear();
+                    const mo = String(current.getMonth() + 1).padStart(2, '0');
+                    const dy = String(current.getDate()).padStart(2, '0');
+                    const iso = `${yr}-${mo}-${dy}`;
+
+                    const dayRecs = periodRecords.filter(r => r.date === iso);
+                    let base = 0, round = 0, wasteLoss = 0, net = 0, sold = 0, wasted = 0;
+                    dayRecs.forEach(r => {
+                        const m = calculateRecordMetrics(r);
+                        base += m.baseWorkProfit;
+                        round += m.roundingProfit;
+                        wasteLoss += m.wasteLoss;
+                        net += m.totalNetProfit;
+                        sold += m.soldSheets;
+                        wasted += m.wastedSheets;
+                    });
+
+                    groupedData.push({
+                        label: `${ARABIC_DAYS[current.getDay()]} (${dy}/${mo})`,
+                        base, round, wasteLoss, net, sold, wasted
+                    });
+                }
+            } else if (state.period === 'monthly') {
+                subtitleEl.textContent = state.chartMode === 'money'
+                    ? 'تتبع محصلتي الربح وخسائر الهالك يومياً على مدار الشهر'
+                    : 'إحصائيات الورق المباع والهالك يومياً على مدار الشهر';
+
+                const [y, m] = state.referenceDate.split('-').map(Number);
+                const daysInMonth = new Date(y, m, 0).getDate();
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dy = String(day).padStart(2, '0');
+                    const mo = String(m).padStart(2, '0');
+                    const iso = `${y}-${mo}-${dy}`;
+
+                    const dayRecs = periodRecords.filter(r => r.date === iso);
+                    let base = 0, round = 0, wasteLoss = 0, net = 0, sold = 0, wasted = 0;
+                    dayRecs.forEach(r => {
+                        const m = calculateRecordMetrics(r);
+                        base += m.baseWorkProfit;
+                        round += m.roundingProfit;
+                        wasteLoss += m.wasteLoss;
+                        net += m.totalNetProfit;
+                        sold += m.soldSheets;
+                        wasted += m.wastedSheets;
+                    });
+
+                    groupedData.push({ label: `${day}`, base, round, wasteLoss, net, sold, wasted });
+                }
+            } else {
+                subtitleEl.textContent = state.chartMode === 'money'
+                    ? 'ملخص الأرباح والخسائر شهرياً لجميع السجلات'
+                    : 'إجمالي الورق المباع والهالك شهرياً';
+
+                const monthsMap = {};
+                periodRecords.forEach(r => {
+                    const ym = r.date.substring(0, 7);
+                    if (!monthsMap[ym]) monthsMap[ym] = { base: 0, round: 0, wasteLoss: 0, net: 0, sold: 0, wasted: 0 };
+                    const m = calculateRecordMetrics(r);
+                    monthsMap[ym].base += m.baseWorkProfit;
+                    monthsMap[ym].round += m.roundingProfit;
+                    monthsMap[ym].wasteLoss += m.wasteLoss;
+                    monthsMap[ym].net += m.totalNetProfit;
+                    monthsMap[ym].sold += m.soldSheets;
+                    monthsMap[ym].wasted += m.wastedSheets;
+                });
+
+                const sortedKeys = Object.keys(monthsMap).sort();
+                if (sortedKeys.length === 0) {
+                    groupedData.push({ label: 'لا توجد بيانات', base: 0, round: 0, wasteLoss: 0, net: 0, sold: 0, wasted: 0 });
+                } else {
+                    sortedKeys.forEach(ym => {
+                        const [yr, mo] = ym.split('-').map(Number);
+                        groupedData.push({
+                            label: `${ARABIC_MONTHS[mo - 1]} ${yr}`,
+                            ...monthsMap[ym]
+                        });
+                    });
+                }
+            }
+
+            const labels = groupedData.map(d => d.label);
+            let datasets = [];
+
+            if (state.chartMode === 'money') {
+                datasets = [
+                    {
+                        label: 'محصلة (1) ربح الشغل الأساسي',
+                        data: groupedData.map(d => d.base),
+                        backgroundColor: 'rgba(37, 99, 235, 0.85)',
+                        borderRadius: 5,
+                        order: 2
+                    },
+                    {
+                        label: 'محصلة (2) ربح تقريب الـ 5',
+                        data: groupedData.map(d => d.round),
+                        backgroundColor: 'rgba(245, 158, 11, 0.85)',
+                        borderRadius: 5,
+                        order: 3
+                    },
+                    {
+                        label: 'خسارة الورق الهالك',
+                        data: groupedData.map(d => d.wasteLoss),
+                        backgroundColor: 'rgba(244, 63, 94, 0.85)',
+                        borderRadius: 5,
+                        order: 4
+                    },
+                    {
+                        label: 'صافي الربح الكلي',
+                        data: groupedData.map(d => d.net),
+                        type: 'line',
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                        borderWidth: 2.5,
+                        pointRadius: 4,
+                        tension: 0.3,
+                        order: 1
+                    }
+                ];
+            } else {
+                datasets = [
+                    {
+                        label: 'الورق المباع (ورقة)',
+                        data: groupedData.map(d => d.sold),
+                        backgroundColor: 'rgba(79, 70, 229, 0.85)',
+                        borderRadius: 6
+                    },
+                    {
+                        label: 'الورق الهالك (ورقة)',
+                        data: groupedData.map(d => d.wasted),
+                        backgroundColor: 'rgba(244, 63, 94, 0.85)',
+                        borderRadius: 6
+                    }
+                ];
+            }
+
+            if (state.chartInstance) {
+                state.chartInstance.destroy();
+            }
+
+            Chart.defaults.font.family = 'Cairo, sans-serif';
+
+            state.chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { usePointStyle: true, font: { family: 'Cairo', size: 11, weight: 'bold' } }
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleFont: { family: 'Cairo', size: 13, weight: 'bold' },
+                            bodyFont: { family: 'Cairo', size: 12 },
+                            padding: 12,
+                            cornerRadius: 10,
+                            callbacks: {
+                                label: function(context) {
+                                    const val = context.parsed.y;
+                                    if (state.chartMode === 'money') {
+                                        return ` ${context.dataset.label}: ${formatMoney(val, true)}`;
+                                    }
+                                    return ` ${context.dataset.label}: ${formatNumber(val)} ورقة`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 11, weight: '600' } } },
+                        y: {
+                            grid: { color: '#f1f5f9' },
+                            ticks: {
+                                color: '#64748b',
+                                font: { size: 11 },
+                                callback: (v) => v.toLocaleString('en-US')
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        /**
+         * ============================================================================
+         * 7. عرض جدول السجلات التفصيلي
+         * ============================================================================
+         */
+        function renderTable(periodRecords) {
+            const tbody = document.getElementById('records-tbody');
+            const emptyState = document.getElementById('empty-state');
+            const countBadge = document.getElementById('table-count-badge');
+
+            const filtered = periodRecords
+                .filter(rec => {
+                    if (state.searchQuery.trim() !== '') {
+                        const q = state.searchQuery.trim().toLowerCase();
+                        return (rec.note || '').toLowerCase().includes(q) || rec.date.includes(q);
+                    }
+                    return true;
+                })
+                .sort((a, b) => b.date.localeCompare(a.date));
+
+            countBadge.textContent = `${filtered.length} سجل`;
+            tbody.innerHTML = '';
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            filtered.forEach(rec => {
+                const m = calculateRecordMetrics(rec);
+                const isTotalProfit = m.totalNetProfit >= 0;
+                const isBaseProfit = m.baseWorkProfit >= 0;
+                const roundColor = m.roundingProfit > 0 ? 'text-amber-600' : (m.roundingProfit < 0 ? 'text-rose-600' : 'text-slate-500');
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/90 transition-colors';
+
+                tr.innerHTML = `
+                    <td class="py-3.5 px-4">
+                        <div class="text-xs font-extrabold text-slate-800">${formatDateArabic(rec.date)}</div>
+                        <div class="text-xs text-slate-500 mt-0.5">${escapeHTML(rec.note || 'حساب أوردرات اليوم')}</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">أصلي: ${m.originalPrice} | بيع: ${m.sellingPrice}</div>
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap font-bold text-slate-800">
+                        ${formatNumber(m.soldSheets)} ورقة
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap font-semibold text-slate-600">
+                        ${formatMoney(m.requiredSellingPrice)}
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap font-extrabold text-indigo-700">
+                        ${formatMoney(m.collectedMoney)}
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap">
+                        <div class="text-xs font-bold text-rose-600">${formatNumber(m.wastedSheets)} ورقة</div>
+                        <div class="text-[11px] font-semibold text-rose-500">-${formatMoney(m.wasteLoss)}</div>
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap font-extrabold ${isBaseProfit ? 'text-blue-700' : 'text-rose-600'}" dir="ltr">
+                        ${formatMoney(m.baseWorkProfit, true)}
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap font-extrabold ${roundColor}" dir="ltr">
+                        ${formatMoney(m.roundingProfit, true)}
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap font-black ${isTotalProfit ? 'text-emerald-600' : 'text-rose-600'}" dir="ltr">
+                        ${formatMoney(m.totalNetProfit, true)}
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap text-center">
+                        <div class="inline-flex items-center justify-center gap-1">
+                            <button onclick="startEditRecord('${rec.id}')" class="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="تعديل">
+                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteRecord('${rec.id}')" class="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors" title="حذف">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            lucide.createIcons({ root: tbody });
+        }
+
+        function escapeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function refreshApp() {
+            updatePeriodLabel();
+            const periodRecords = getFilteredRecordsByPeriod();
+            updateSummaryCards(periodRecords);
+            updateChart(periodRecords);
+            renderTable(periodRecords);
+        }
+
+        /**
+         * ============================================================================
+         * 8. المعاينة الفورية في النموذج وحفظ/تعديل/حذف السجلات
+         * ============================================================================
+         */
+        function updateLivePreview() {
+            const soldSheets = parseFloat(document.getElementById('sold-sheets').value) || 0;
+            const wastedSheets = parseFloat(document.getElementById('wasted-sheets').value) || 0;
+            const collectedMoney = parseFloat(document.getElementById('collected-money').value) || 0;
+            const originalPrice = parseFloat(document.getElementById('original-price').value) || 0;
+            const sellingPrice = parseFloat(document.getElementById('selling-price').value) || 0;
+            const extraExpenses = parseFloat(document.getElementById('extra-expenses').value) || 0;
+
+            const m = calculateRecordMetrics({
+                soldSheets, wastedSheets, collectedMoney, originalPrice, sellingPrice, extraExpenses
+            });
+
+            // 1. تحت خانة الورق المباع: السعر المطلوب (بدون تقريب) + التكلفة الأصلية
+            document.getElementById('preview-required-price').textContent = formatMoney(m.requiredSellingPrice);
+            document.getElementById('preview-original-cost').textContent = formatMoney(m.soldOriginalCost);
+
+            // 2. تحت خانة الفلوس المحصلة: محصلة ربح/خسارة تقريب الـ 5
+            const roundBox = document.getElementById('preview-rounding-box');
+            const roundVal = document.getElementById('preview-rounding-val');
+            roundVal.textContent = formatMoney(m.roundingProfit, true);
+
+            if (m.roundingProfit > 0) {
+                roundBox.className = 'bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 flex items-center justify-between text-xs transition-colors';
+                roundVal.className = 'text-sm font-extrabold text-emerald-700';
+            } else if (m.roundingProfit < 0) {
+                roundBox.className = 'bg-rose-50 border border-rose-200 rounded-xl px-3 py-2 flex items-center justify-between text-xs transition-colors';
+                roundVal.className = 'text-sm font-extrabold text-rose-600';
+            } else {
+                roundBox.className = 'bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 flex items-center justify-between text-xs transition-colors';
+                roundVal.className = 'text-sm font-extrabold text-slate-600';
+            }
+
+            // 3. تحت خانة الورق الهالك: سعر/خسارة الهالك
+            document.getElementById('preview-waste-loss').textContent = m.wasteLoss > 0 ? `-${formatMoney(m.wasteLoss)}` : '0.00 ج.م';
+
+            // 4. شريط المحصلتين أسفل النموذج
+            const baseEl = document.getElementById('summary-base-profit');
+            baseEl.textContent = formatMoney(m.baseWorkProfit, true);
+            baseEl.className = `font-extrabold ${m.baseWorkProfit >= 0 ? 'text-blue-400' : 'text-rose-400'}`;
+
+            const sumRoundEl = document.getElementById('summary-rounding-profit');
+            sumRoundEl.textContent = formatMoney(m.roundingProfit, true);
+            sumRoundEl.className = `font-extrabold ${m.roundingProfit > 0 ? 'text-amber-400' : (m.roundingProfit < 0 ? 'text-rose-400' : 'text-slate-400')}`;
+
+            const totalNetEl = document.getElementById('summary-total-net');
+            totalNetEl.textContent = formatMoney(m.totalNetProfit, true);
+            totalNetEl.className = `text-base sm:text-lg font-black ${m.totalNetProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+        }
+
+        ['sold-sheets', 'wasted-sheets', 'collected-money', 'original-price', 'selling-price', 'extra-expenses'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                updateLivePreview();
+                if (id === 'original-price' || id === 'selling-price') {
+                    savePricesToStorage();
+                }
+            });
+        });
+
+        document.getElementById('print-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const editId = document.getElementById('edit-id').value;
+            const date = document.getElementById('entry-date').value;
+            const note = document.getElementById('entry-note').value.trim();
+            const soldSheets = parseInt(document.getElementById('sold-sheets').value, 10) || 0;
+            const wastedSheets = parseInt(document.getElementById('wasted-sheets').value, 10) || 0;
+            const collectedMoney = parseFloat(document.getElementById('collected-money').value) || 0;
+            const originalPrice = parseFloat(document.getElementById('original-price').value) || 0;
+            const sellingPrice = parseFloat(document.getElementById('selling-price').value) || 0;
+            const extraExpenses = parseFloat(document.getElementById('extra-expenses').value) || 0;
+
+            if (!date) {
+                showToast('يرجى تحديد التاريخ', 'error');
+                return;
+            }
+
+            if (editId) {
+                const idx = state.records.findIndex(r => r.id === editId);
+                if (idx !== -1) {
+                    state.records[idx] = { id: editId, date, note, soldSheets, wastedSheets, collectedMoney, originalPrice, sellingPrice, extraExpenses };
+                    showToast('تم تحديث السجل بنجاح', 'success');
+                }
+                resetForm();
+            } else {
+                state.records.push({
+                    id: Date.now().toString(),
+                    date,
+                    note,
+                    soldSheets,
+                    wastedSheets,
+                    collectedMoney,
+                    originalPrice,
+                    sellingPrice,
+                    extraExpenses
+                });
+                showToast('تم حفظ السجل في الحسابات بنجاح', 'success');
+
+                // تفريغ حقول العملية مع الإبقاء على الأسعار والتاريخ
+                document.getElementById('entry-note').value = '';
+                document.getElementById('sold-sheets').value = '';
+                document.getElementById('wasted-sheets').value = '';
+                document.getElementById('collected-money').value = '';
+                document.getElementById('extra-expenses').value = '0';
+                updateLivePreview();
+            }
+
+            saveToStorage();
+            refreshApp();
+        });
+
+        window.startEditRecord = function(id) {
+            const rec = state.records.find(r => r.id === id);
+            if (!rec) return;
+
+            document.getElementById('edit-id').value = rec.id;
+            document.getElementById('entry-date').value = rec.date;
+            document.getElementById('entry-note').value = rec.note || '';
+            document.getElementById('sold-sheets').value = rec.soldSheets;
+            document.getElementById('wasted-sheets').value = rec.wastedSheets;
+            document.getElementById('collected-money').value = rec.collectedMoney;
+            document.getElementById('original-price').value = rec.originalPrice;
+            document.getElementById('selling-price').value = rec.sellingPrice;
+            document.getElementById('extra-expenses').value = rec.extraExpenses || 0;
+
+            document.getElementById('form-title').textContent = 'تعديل السجل المحدد';
+            document.getElementById('submit-btn-text').textContent = 'حفظ التعديلات';
+            document.getElementById('cancel-edit-btn').classList.remove('hidden');
+
+            updateLivePreview();
+            document.getElementById('print-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        };
+
+        function resetForm() {
+            const origP = document.getElementById('original-price').value;
+            const sellP = document.getElementById('selling-price').value;
+
+            document.getElementById('edit-id').value = '';
+            document.getElementById('print-form').reset();
+            document.getElementById('entry-date').value = getTodayISO();
+            document.getElementById('original-price').value = origP;
+            document.getElementById('selling-price').value = sellP;
+            document.getElementById('extra-expenses').value = '0';
+
+            document.getElementById('form-title').textContent = 'تسجيل توتال اليوم / الأوردرات';
+            document.getElementById('submit-btn-text').textContent = 'حفظ السجل في الحسابات';
+            document.getElementById('cancel-edit-btn').classList.add('hidden');
+            updateLivePreview();
+        }
+
+        document.getElementById('cancel-edit-btn').addEventListener('click', resetForm);
+
+        window.deleteRecord = function(id) {
+            showConfirm('حذف السجل', 'هل أنت متأكد من حذف هذا السجل نهائياً؟', () => {
+                state.records = state.records.filter(r => r.id !== id);
+                if (document.getElementById('edit-id').value === id) resetForm();
+                saveToStorage();
+                refreshApp();
+                showToast('تم حذف السجل بنجاح', 'info');
+            });
+        };
+
+        // تصدير Excel/CSV
+        document.getElementById('export-csv-btn').addEventListener('click', () => {
+            const periodRecords = getFilteredRecordsByPeriod();
+            if (periodRecords.length === 0) {
+                showToast('لا توجد سجلات لتصديرها في الفترة الحالية', 'error');
+                return;
+            }
+
+            const headers = [
+                'التاريخ', 'البيان', 'السعر الأصلي للورقة', 'سعر البيع للورقة',
+                'الورق المباع', 'المطلوب بسعر البيع (ج.م)', 'الفلوس المحصلة فعلاً (ج.م)',
+                'الورق الهالك', 'خسارة الهالك (ج.م)', 'مصروفات إضافية (ج.م)',
+                'محصلة (1) ربح الشغل الأساسي (ج.م)', 'محصلة (2) ربح تقريب الـ 5 (ج.م)', 'صافي الربح الكلي (ج.م)'
+            ];
+
+            const rows = periodRecords.map(rec => {
+                const m = calculateRecordMetrics(rec);
+                return [
+                    rec.date,
+                    `"${(rec.note || 'حساب أوردرات اليوم').replace(/"/g, '""')}"`,
+                    m.originalPrice,
+                    m.sellingPrice,
+                    m.soldSheets,
+                    m.requiredSellingPrice.toFixed(2),
+                    m.collectedMoney.toFixed(2),
+                    m.wastedSheets,
+                    m.wasteLoss.toFixed(2),
+                    m.extraExpenses.toFixed(2),
+                    m.baseWorkProfit.toFixed(2),
+                    m.roundingProfit.toFixed(2),
+                    m.totalNetProfit.toFixed(2)
+                ];
+            });
+
+            const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `مكتبة_القمة_تقرير_${state.period}_${state.referenceDate}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showToast('تم تصدير التقرير بصيغة Excel/CSV بنجاح', 'success');
+        });
+
+        // مسح السجل بالكامل
+        document.getElementById('clear-all-btn').addEventListener('click', () => {
+            if (state.records.length === 0) {
+                showToast('السجل فارغ بالفعل', 'info');
+                return;
+            }
+            showConfirm('مسح كافة السجلات', 'هل أنت متأكد من مسح جميع السجلات المحفوظة نهائياً؟', () => {
+                state.records = [];
+                resetForm();
+                saveToStorage();
+                refreshApp();
+                showToast('تم مسح كافة السجلات', 'info');
+            });
+        });
+
+        function handleLoadSamples() {
+            state.records = [...state.records, ...generateSampleData()];
+            saveToStorage();
+            refreshApp();
+            showToast('تم تحميل بيانات تجريبية واقعية', 'success');
+        }
+
+        document.getElementById('load-sample-btn').addEventListener('click', handleLoadSamples);
+        document.getElementById('footer-sample-btn').addEventListener('click', handleLoadSamples);
+
+        /**
+         * ============================================================================
+         * 9. التبويبات والتنقل بين الفترات (Tabs & Navigation)
+         * ============================================================================
+         */
+        function shiftReferenceDate(direction) {
+            const [y, m, d] = state.referenceDate.split('-').map(Number);
+            const dt = new Date(y, m - 1, d);
+
+            if (state.period === 'daily') {
+                dt.setDate(dt.getDate() + direction);
+            } else if (state.period === 'weekly') {
+                dt.setDate(dt.getDate() + (direction * 7));
+            } else if (state.period === 'monthly') {
+                dt.setMonth(dt.getMonth() + direction);
+            }
+
+            const yr = dt.getFullYear();
+            const mo = String(dt.getMonth() + 1).padStart(2, '0');
+            const dy = String(dt.getDate()).padStart(2, '0');
+            state.referenceDate = `${yr}-${mo}-${dy}`;
+            document.getElementById('reference-date').value = state.referenceDate;
+            refreshApp();
+        }
+
+        document.getElementById('prev-period-btn').addEventListener('click', () => shiftReferenceDate(-1));
+        document.getElementById('next-period-btn').addEventListener('click', () => shiftReferenceDate(1));
+
+        document.querySelectorAll('.period-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.period-tab').forEach(t => {
+                    t.className = 'period-tab flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 transition-all';
+                });
+                tab.className = 'period-tab flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-700 shadow-sm';
+
+                state.period = tab.dataset.period;
+                const navWrapper = document.getElementById('date-nav-wrapper');
+                if (state.period === 'all') {
+                    navWrapper.classList.add('opacity-40', 'pointer-events-none');
+                } else {
+                    navWrapper.classList.remove('opacity-40', 'pointer-events-none');
+                }
+                refreshApp();
+            });
+        });
+
+        document.getElementById('chart-mode-money').addEventListener('click', function() {
+            state.chartMode = 'money';
+            this.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-indigo-700 shadow-sm transition-all';
+            document.getElementById('chart-mode-sheets').className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all';
+            updateChart(getFilteredRecordsByPeriod());
+        });
+
+        document.getElementById('chart-mode-sheets').addEventListener('click', function() {
+            state.chartMode = 'sheets';
+            this.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-indigo-700 shadow-sm transition-all';
+            document.getElementById('chart-mode-money').className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all';
+            updateChart(getFilteredRecordsByPeriod());
+        });
+
+        document.getElementById('reference-date').addEventListener('change', (e) => {
+            if (e.target.value) {
+                state.referenceDate = e.target.value;
+                refreshApp();
+            }
+        });
+
+        document.getElementById('today-btn').addEventListener('click', () => {
+            const today = getTodayISO();
+            state.referenceDate = today;
+            document.getElementById('reference-date').value = today;
+            refreshApp();
+        });
+
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            state.searchQuery = e.target.value;
+            renderTable(getFilteredRecordsByPeriod());
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('current-year').textContent = new Date().getFullYear();
+            const today = getTodayISO();
+            state.referenceDate = today;
+            document.getElementById('reference-date').value = today;
+            document.getElementById('entry-date').value = today;
+
+            loadFromStorage();
+            updateLivePreview();
+            lucide.createIcons();
+            refreshApp();
+        });
     </script>
 </body>
 </html>
