@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>System Access</title>
+    <style>
+        body { background-color: black; color: #00ff00; font-family: monospace; padding: 20px; font-size: 18px; }
+    </style>
+</head>
+<body>
+    <div id="terminal"></div>
+    <script>
+        const texts = [
+            "Initializing connection to target device...",
+            "Bypassing firewall [OK]",
+            "Accessing root directory...",
+            "Decrypting secure database...",
+            "Extracting user credentials...",
+            "Access Granted: Welcome Admin."
+        ];
+        let i = 0;
+        function showText() {
+            if (i < texts.length) {
+                document.getElementById("terminal").innerHTML += texts[i] + "<br>";
+                i++;
+                setTimeout(showText, 1000);
+            }
+        }
+        showText();
+    </script>
+</body>
+</html>
